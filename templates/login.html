@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="background"></div>
+    <div class="container">
+        <header>
+            <div class="background">
+                <img src="{{ url_for('static', filename='background.jpg') }}" alt="inDrive Outstation">
+            </div>
+            <div class="auth-buttons">
+                <a href="/signup" class="btn">Sign Up</a>
+            </div>
+        </header>
+        <h1>Log In</h1>
+        <form action="/login" method="post">
+            <div class="input-container">
+                <input type="text" name="vehicle_number" placeholder="Vehicle Number" required>
+                <input type="password" name="password" placeholder="Password" required>
+                <button type="submit" class="btn">Log In</button>
+            </div>
+        </form>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul>
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+    </div>
+</body>
+</html>
