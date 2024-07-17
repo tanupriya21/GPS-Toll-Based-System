@@ -1,0 +1,103 @@
+import folium
+from geopy.distance import geodesic
+import simpy
+import webbrowser
+
+# Coordinates
+mathura_coords = (27.4924, 77.6737)
+delhi_coords = (28.7041, 77.1025)
+sonipat_coords = (29.0000, 77.0120)
+bulandsher_coords = (28.4104, 77.8498)
+meerut_coords = (28.9845, 77.7064)
+muzaffarnagar_coords = (29.4735, 77.7045)
+
+
+# Function to create a map
+def create_map(route_coords, route_name):
+    m = folium.Map(location=mathura_coords, zoom_start=7)
+    folium.Marker(location=mathura_coords, popup='Mathura', icon=folium.Icon(color='red')).add_to(m)
+    folium.Marker(location=delhi_coords, popup='Delhi', icon=folium.Icon(color='red')).add_to(m)
+
+    for coord in route_coords[1:-1]:
+        folium.Marker(location=coord, icon=folium.Icon(color='blue')).add_to(m)
+
+    folium.PolyLine(route_coords, color='blue', weight=2.5, opacity=1).add_to(m)
+    m.save(f'{route_name}.html')
+
+
+# Define routes
+routes = {
+    'mathura_to_delhi': [mathura_coords, (27.6762, 77.5707), (27.7805, 77.4854), (27.8506, 77.4402), (27.9738, 77.3692),
+                         (28.1043, 77.3191), (28.2063, 77.2978), (28.3420, 77.3030), (28.4413, 77.2770),
+                         (28.5245, 77.2521), (28.6196, 77.2174), delhi_coords],
+    'mathura_to_sonipat': [mathura_coords, (27.6762, 77.5707), (27.7805, 77.4854), (27.8506, 77.4402),
+                           (27.9738, 77.3692), (28.1043, 77.3191), (28.2063, 77.2978), (28.3420, 77.3030),
+                           (28.4413, 77.2770), (28.5245, 77.2521), sonipat_coords],
+    'mathura_to_bulandsher': [mathura_coords, (27.6762, 77.5707), (27.7805, 77.4854), (27.8506, 77.4402),
+                              (27.9738, 77.3692), (28.1043, 77.3191), (28.2063, 77.2978), (28.3420, 77.3030),
+                              (28.4413, 77.2770), bulandsher_coords],
+    'mathura_to_meerut': [mathura_coords, (27.6762, 77.5707), (27.7805, 77.4854), (27.8506, 77.4402),
+                          (27.9738, 77.3692), (28.1043, 77.3191), (28.2063, 77.2978), (28.3420, 77.3030),
+                          (28.4413, 77.2770), meerut_coords],
+    'mathura_to_muzaffarnagar': [mathura_coords, (27.6762, 77.5707), (27.7805, 77.4854), (27.8506, 77.4402),
+                                 (27.9738, 77.3692), (28.1043, 77.3191), (28.2063, 77.2978), (28.3420, 77.3030),
+                                 (28.4413, 77.2770), muzaffarnagar_coords]
+}
+
+# Create maps
+for route_name, route_coords in routes.items():
+    create_map(route_coords, route_name)
+
+
+class Vehicle:
+    def __init__(self, env, name, route, toll_rate):
+        self.env = env
+        self.name = name
+        self.route = route
+        self.toll_rate = toll_rate
+        self.total_distance = 0
+        self.total_toll = 0
+        self.action = env.process(self.drive())
+
+    def drive(self):
+        for i in range(len(self.route) - 1):
+            start = self.route[i]
+            end = self.route[i + 1]
+            distance = geodesic(start, end).kilometers
+            self.total_distance += distance
+            toll = distance * self.toll_rate
+            self.total_toll += toll
+            yield self.env.timeout(distance / 60)  # Assuming average speed is 60 km/h
+            print(f'{self.name} driving from {start} to {end}, distance: {distance:.2f} km, toll: {toll:.2f} INR')
+
+        print(
+            f'{self.name} finished route. Total distance: {self.total_distance:.2f} km, Total toll: {self.total_toll:.2f} INR')
+
+
+# Simulate vehicles
+env = simpy.Environment()
+vehicles = []
+
+for route_name, route_coords in routes.items():
+    vehicles.append(Vehicle(env, route_name, route_coords, 5))
+
+env.run()
+
+# Output the results
+for vehicle in vehicles:
+    print(
+        f'{vehicle.name}: Total distance = {vehicle.total_distance:.2f} km, Total toll = {vehicle.total_toll:.2f} INR')
+
+
+# User choice to open a map
+def open_map():
+    print("\nChoose a map to open:")
+    for i, route_name in enumerate(routes.keys(), 1):
+        print(f"{i}. {route_name.replace('_', ' ').title()}")
+
+    choice = int(input("\nEnter the number of the map you want to open: "))
+    chosen_route = list(routes.keys())[choice - 1]
+    webbrowser.open(f"{chosen_route}.html")
+
+
+open_map()
